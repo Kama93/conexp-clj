@@ -221,8 +221,10 @@
                   new-nodes (map
                               #(vector % (+ 1 current-depth))
                               (remove visited (graph current-node)))]
-              (recur (apply conj visited new-nodes) (apply conj (pop queue) new-nodes)))))]
-    (do-bfs {node 0} (conj clojure.lang.PersistentQueue/EMPTY [node 0]))))
+              (recur (apply conj visited new-nodes)
+                     (apply conj (pop queue) new-nodes)))))]
+    (do-bfs {node 0}
+            (conj clojure.lang.PersistentQueue/EMPTY [node 0]))))
 
 (defn connected-components
   "Returns for a given `graph', represented as an adjacency-map,
@@ -230,8 +232,11 @@
   [graph]
   (if (empty? graph)
     '()
-    (let [component (select-keys graph (keys (breadth-first-search graph (first (keys graph)))))]
-      (cons component (connected-components (apply dissoc graph (keys component)))))))
+    (let [component (select-keys graph
+                                 (keys (breadth-first-search graph
+                                                             (first (keys graph)))))]
+      (cons component
+            (connected-components (apply dissoc graph (keys component)))))))
 
 ;;; Average-shortest-path
 
@@ -387,7 +392,7 @@
 ;;;k-cores
 
 (defn- k-cores-elimination
-"For a given `graph', returns the maximial subgraph,
+  "For a given `graph', returns the maximial subgraph,
   in which every vertice has at least `k' edges."
 [graph k]
 (assert (and (integer? k) (>= k 0)) "K must be a non-negative integer!")
