@@ -15,7 +15,9 @@
                                          context?
                                          incident?]]
             [clojure.set :refer [intersection
-                                 union]]))
+                                 union
+                                 subset?]]
+            [conexp.base :refer [expt]]))
 
 
 ;;; Functions to compute adjacency-matricies
@@ -310,6 +312,50 @@
   attributes share an edge if they share an object."
   [context]
   (vertex-degrees context attribute-projection))
+
+;;; Modularity
+
+(defn edges
+  "Computes for a given undirected `graph', represented as an adjacency-map,
+  the set of all edges."
+  [graph]
+  (set (mapcat #(for [node (graph %)]
+                  (hash-set % node))
+               (keys graph))))
+
+(defn modularity
+  "Computes for a given `graph', represented as an adjacency-map,
+  and a given `clustering' the modularity. The clustering should be given
+  as a vector or set of clusters where a cluster should be a set of nodes.
+
+  See:
+  ``On Modularity Clustering`` by Ulrik Brandes et al. for
+  more information.
+
+  As this function needs all edges of the graph and computing
+  them will often be the most time-consuming part, an optinonal
+  third parameter `edges' that allows to commit the
+  precomputed seq of edges is provided."
+  ([graph clustering edges]
+   (assert (seq edges) "Can't compute modularity for a graph without edges!")
+   (let [amount-of-edges (count edges)
+         amount-intra-edges
+         (zipmap clustering
+                 (map #(count (filter (fn [edge]
+                                        (subset? edge %))
+                                      edges))
+                      clustering))]
+     (reduce (fn [val cluster]
+               (+ val (- (double (/ (amount-intra-edges cluster)
+                                    amount-of-edges))
+                         (double (expt (/ (reduce + (map (fn [node]
+                                                           (count (graph node)))
+                                                         cluster))
+                                          (* 2 amount-of-edges))
+                                       2)))))
+             0
+             clustering)))
+  ([graph clustering] (modularity graph clustering (edges graph))))
 
 ;;;
 
