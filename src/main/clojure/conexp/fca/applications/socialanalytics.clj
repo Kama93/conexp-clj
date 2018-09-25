@@ -357,6 +357,61 @@
              clustering)))
   ([graph clustering] (modularity graph clustering (edges graph))))
 
+(defn context-graph-modularity
+  "Computes for a given `context' the modularity of the context graph
+  with respect to the given `clustering'.
+
+  The clustering should be given as a vector or a set of clusters.
+  A cluster should be a map with the keys :objects and :attributes.
+  The value to :object should be the set of the objects belonging to
+  the cluster and the value to :attributes should be the set of the
+  attributes belonging to the cluster.
+
+  As this function needs all incidents of the context and computing them
+  will often be one of the more time-consuming parts of the computation,
+  an optional third parameter `inidents' that allows to commit the
+  precomputed seq of inicidents is provided."
+  ([context clustering incidents]
+    ;; Note that this function does not compute the context-graph to copmute the modularity.
+    ;; Instead, the modularity is computed directly from the strucutre of the context.
+   (assert (context? context) "First argument must be a formal context.")
+   (let [amount-of-incidents (count incidents)
+         amount-intra-incidents
+         (zipmap clustering
+                 (map #(count (filter (fn [incident]
+                                        (and (contains? (% :objects) (first incident))
+                                             (contains? (% :attributes) (nth incident 1))))
+                                      incidents))
+                      clustering))]
+     (reduce (fn [val cluster]
+               (+ val (- (double (/ (amount-intra-incidents cluster)
+                                    amount-of-incidents))
+                         (double (expt (/ (+ (reduce + (map (fn [object]
+                                                              (count (object-derivation context #{object})))
+                                                        (cluster :objects)))
+                                             (reduce + (map (fn [attribute]
+                                                            (count (attribute-derivation context #{attribute})))
+                                                          (cluster :attributes))))
+                                          (* 2 amount-of-incidents))
+                                       2)))))
+             0
+             clustering)))
+  ([context clustering] (context-modularity context clustering (incidence-relation context))))
+
+(defn object-projection-modularity
+  "Computes for a given `context' the modularity of the object-projection
+  of the context graph with respect to the clustering `clustering'."
+  [context clustering]
+  (assert (context? context) "First argument must be a formal context.")
+  (modularity (object-projection context) clustering))
+
+(defn attribute-projection-modularity
+  "Computes for a given `context' the modularity of the attribute-projection
+  of the context graph with respect to the clustering `clustering'."
+  [context clustering]
+  (assert (context? context) "First argument must be a formal context.")
+  (modularity (attribute-projection context) clustering))
+
 ;;;
 
 nil
